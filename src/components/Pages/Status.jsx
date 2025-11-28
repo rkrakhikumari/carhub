@@ -207,16 +207,13 @@ const Status = ({
 
               {/* Filter Section */}
               <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Filter size={18} className="text-gray-600" />
-                  <span className="font-medium text-gray-700">Filters</span>
-                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="text"
                     value={filterNumber}
                     onChange={(e) => setFilterNumber(e.target.value)}
-                    placeholder="Filter by number plate"
+                    placeholder="Enter Car Number (e.g., DL-01-AB-1234)"
                     className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
                   />
                   <select
@@ -313,7 +310,7 @@ const Status = ({
         {/* Add Car Modal */}
         {showAddCar && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
               {/* Header */}
               <div className="flex justify-between items-center mb-5">
                 <h3 className="text-xl font-bold text-gray-800">Add New Car</h3>
