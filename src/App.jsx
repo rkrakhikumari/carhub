@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NavBar from './components/NavBar';
 import LoginPage from './components/Pages/LoginPage';
 import Home from './components/Pages/Home';
@@ -102,10 +102,42 @@ const CarHubApp = () => {
     },
   ]);
 
+  // Load data from localStorage on mount
+  useEffect(() => {
+    const savedDrivers = localStorage.getItem('drivers');
+    const savedCars = localStorage.getItem('cars');
+    const savedAttendance = localStorage.getItem('attendance');
+
+    if (savedDrivers) setDrivers(JSON.parse(savedDrivers));
+    if (savedCars) setCars(JSON.parse(savedCars));
+    if (savedAttendance) setAttendance(JSON.parse(savedAttendance));
+  }, []);
+
+  // Save data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('drivers', JSON.stringify(drivers));
+  }, [drivers]);
+
+  useEffect(() => {
+    localStorage.setItem('cars', JSON.stringify(cars));
+  }, [cars]);
+
+  useEffect(() => {
+    localStorage.setItem('attendance', JSON.stringify(attendance));
+  }, [attendance]);
+
   const handleLogin = (role) => {
     setUserRole(role);
     setIsLoggedIn(true);
-    setCurrentPage('home');
+    
+    // Set default page based on role
+    if (role === 'crm') {
+      setCurrentPage('attendance');
+      setActiveNav('attendance');
+    } else {
+      setCurrentPage('home');
+      setActiveNav('home');
+    }
   };
 
   const handleLogout = () => {
@@ -186,19 +218,19 @@ const CarHubApp = () => {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  // CRM role restricted navigation
+  // CRM role restricted navigation - Attendance first, then Drivers
   const getNavItems = () => {
     if (userRole === 'crm') {
       return [
-        { key: 'drivers', label: 'Drivers' },
         { key: 'attendance', label: 'Attendance' },
+        { key: 'drivers', label: 'Drivers' },
       ];
     }
     return [
       { key: 'home', label: 'Home' },
       { key: 'status', label: 'Car Status' },
-      { key: 'drivers', label: 'Drivers' },
       { key: 'attendance', label: 'Attendance' },
+      { key: 'drivers', label: 'Drivers' },
       { key: 'about', label: 'About Us' },
       { key: 'contact', label: 'Contact Us' },
     ];

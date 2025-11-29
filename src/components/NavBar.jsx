@@ -16,6 +16,12 @@ const NavBar = ({ activeNav, setActiveNav, setCurrentPage, onLogout, navItems, u
     return 'bg-green-100 text-green-700';
   };
 
+  // Reorder navItems: Attendance first, then Drivers, then others
+  const sortedNavItems = navItems.sort((a, b) => {
+    const order = { attendance: 0, drivers: 1 };
+    return (order[a.key] ?? 2) - (order[b.key] ?? 2);
+  });
+
   return (
     <nav className={`sticky top-0 z-50 ${getRoleColor()}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,7 +34,7 @@ const NavBar = ({ activeNav, setActiveNav, setCurrentPage, onLogout, navItems, u
           </div>
 
           <div className="hidden md:flex items-center gap-8">
-            {navItems.map((item) => (
+            {sortedNavItems.map((item) => (
               <button
                 key={item.key}
                 onClick={() => {
@@ -67,7 +73,7 @@ const NavBar = ({ activeNav, setActiveNav, setCurrentPage, onLogout, navItems, u
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden pb-4 space-y-2">
-            {navItems.map((item) => (
+            {sortedNavItems.map((item) => (
               <button
                 key={item.key}
                 onClick={() => {

@@ -11,6 +11,8 @@ const Attendance = ({ cars = [], drivers = [], attendance = [], setAttendance, u
   const [selectedStatus, setSelectedStatus] = useState('Present');
   const [showDriverProfile, setShowDriverProfile] = useState(false);
   const [selectedDriverProfile, setSelectedDriverProfile] = useState(null);
+  const [dateFromFilter, setDateFromFilter] = useState(new Date().toISOString().split('T')[0]);
+  const [dateToFilter, setDateToFilter] = useState(new Date().toISOString().split('T')[0]);
 
   const todayDate = new Date().toISOString().split('T')[0];
 
@@ -108,11 +110,47 @@ const Attendance = ({ cars = [], drivers = [], attendance = [], setAttendance, u
     document.body.removeChild(element);
   };
 
+  const exportAllDriversToExcel = () => {
+    if (filteredDriverList.length === 0) {
+      alert('No drivers to export');
+      return;
+    }
+
+    let csvContent = 'Driver Name,UUID,Vehicle,Date,Status,Time\n';
+    
+    filteredDriverList.forEach((driver) => {
+      const dateRangeRecords = getFilteredAttendanceByDateRange(driver.name);
+      
+      if (dateRangeRecords.length > 0) {
+        dateRangeRecords.forEach((record) => {
+          csvContent += `${driver.name},${driver.uid},${record.vehicle},${record.date},${record.status},${record.timestamp}\n`;
+        });
+      } else {
+        csvContent += `${driver.name},${driver.uid},${getDriverVehicle(driver.name)},No Records,-,-\n`;
+      }
+    });
+
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent));
+    element.setAttribute('download', `all_drivers_attendance_${dateFromFilter}_to_${dateToFilter}.csv`);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
   const getTotalDrivers = () => drivers.length;
   const getTodayPresent = () => filteredTodayAttendance.filter((a) => a.status === 'Present').length;
   const getTodayPWC = () => filteredTodayAttendance.filter((a) => a.status === 'PWC').length;
   const getTodayLeave = () => filteredTodayAttendance.filter((a) => a.status === 'Leave').length;
   const getTodayNotMarked = () => drivers.length - filteredTodayAttendance.length;
+
+  const getFilteredAttendanceByDateRange = (driverName) => {
+    if (!attendance || attendance.length === 0) return [];
+    return attendance.filter(
+      (a) => a.driverName === driverName && a.date >= dateFromFilter && a.date <= dateToFilter
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-8">
@@ -155,7 +193,6 @@ const Attendance = ({ cars = [], drivers = [], attendance = [], setAttendance, u
           <div className="bg-white rounded-lg shadow-lg p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-8">Dashboard</h2>
 
-            {/* Statistics Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center">
                 <p className="text-gray-600 text-sm font-medium mb-2">Total drivers</p>
@@ -179,7 +216,6 @@ const Attendance = ({ cars = [], drivers = [], attendance = [], setAttendance, u
               </div>
             </div>
 
-            {/* Attendance List */}
             <div>
               <h3 className="text-lg font-bold text-gray-800 mb-4">
                 Attendance for {todayDate}
@@ -228,15 +264,6 @@ const Attendance = ({ cars = [], drivers = [], attendance = [], setAttendance, u
           <div className="bg-white rounded-lg shadow-lg p-8">
             <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
               <h2 className="text-2xl font-bold text-gray-800">Driver List</h2>
-              <button
-                onClick={() => {
-                  setActiveTab('mark');
-                }}
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-              >
-                <Download size={18} />
-                Export Excel
-              </button>
             </div>
 
             <div className="mb-6">
@@ -249,7 +276,6 @@ const Attendance = ({ cars = [], drivers = [], attendance = [], setAttendance, u
               />
             </div>
 
-            {/* Table Headers */}
             <div className="hidden md:grid grid-cols-4 gap-4 mb-4 pb-4 border-b-2 border-gray-300">
               <div className="font-bold text-gray-700">Name</div>
               <div className="font-bold text-gray-700">UUID</div>
@@ -257,7 +283,6 @@ const Attendance = ({ cars = [], drivers = [], attendance = [], setAttendance, u
               <div className="font-bold text-gray-700">Action</div>
             </div>
 
-            {/* Driver Cards */}
             <div className="space-y-4">
               {filteredDriverList.length > 0 ? (
                 filteredDriverList.map((driver) => (
@@ -299,129 +324,164 @@ const Attendance = ({ cars = [], drivers = [], attendance = [], setAttendance, u
         {/* Mark Attendance Tab */}
         {activeTab === 'mark' && (
           <div className="bg-white rounded-lg shadow-lg p-8">
-            {/* Header with Date and Filter */}
             <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Mark Attendance</h2>
-                <p className="text-gray-600">{selectedDate}</p>
+              <h2 className="text-2xl font-bold text-gray-800">Mark Attendance</h2>
+              <div className="flex items-center gap-4 flex-wrap w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder="Filter by name/vehicle"
+                  value={filterName}
+                  onChange={(e) => setFilterName(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 flex-1 md:w-64"
+                />
+                <button
+                  onClick={exportAllDriversToExcel}
+                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition whitespace-nowrap"
+                >
+                  <Download size={18} />
+                  Export All
+                </button>
               </div>
-              <input
-                type="text"
-                placeholder="Filter by name/vehicle"
-                value={filterName}
-                onChange={(e) => setFilterName(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 w-full md:w-64"
-              />
             </div>
 
-            {/* Date Input */}
-            <div className="mb-6">
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
-              />
+            <div className="mb-8 bg-gray-50 p-6 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Date Range Filter</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+                  <input
+                    type="date"
+                    value={dateFromFilter}
+                    onChange={(e) => setDateFromFilter(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+                  <input
+                    type="date"
+                    value={dateToFilter}
+                    onChange={(e) => setDateToFilter(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mt-3">
+                Showing attendance records from {dateFromFilter} to {dateToFilter}
+              </p>
             </div>
 
-            {/* Driver Cards */}
             <div className="space-y-4">
               {filteredDriverList.length > 0 ? (
                 filteredDriverList.map((driver) => {
-                  const driverTodayRecord = attendance.find(
-                    (a) => a.driverName === driver.name && a.date === selectedDate
-                  );
+                  const dateRangeRecords = getFilteredAttendanceByDateRange(driver.name);
+                  const presentCount = dateRangeRecords.filter((a) => a.status === 'Present').length;
+                  const leaveCount = dateRangeRecords.filter((a) => a.status === 'Leave').length;
+                  const pwcCount = dateRangeRecords.filter((a) => a.status === 'PWC').length;
 
                   return (
                     <div
                       key={driver.uid}
-                      className="bg-gray-50 p-6 rounded-lg border border-gray-200 flex justify-between items-center flex-wrap gap-4"
+                      className="bg-gray-50 p-6 rounded-lg border border-gray-200"
                     >
-                      <div className="flex-1">
-                        <p className="font-bold text-lg text-gray-800">{driver.name}</p>
-                        <p className="text-sm text-gray-500">{driver.uid}</p>
-                        <p className="text-sm text-gray-600 mt-1">Vehicle: {getDriverVehicle(driver.name)}</p>
+                      <div className="flex justify-between items-start flex-wrap gap-4 mb-4">
+                        <div>
+                          <p className="font-bold text-lg text-gray-800">{driver.name}</p>
+                          <p className="text-sm text-gray-500">{driver.uid}</p>
+                          <p className="text-sm text-gray-600 mt-1">Vehicle: {getDriverVehicle(driver.name)}</p>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                          <div className="bg-green-50 p-3 rounded-lg">
+                            <p className="text-xs font-medium text-gray-600">Present</p>
+                            <p className="text-lg font-bold text-green-600">{presentCount}</p>
+                          </div>
+                          <div className="bg-red-50 p-3 rounded-lg">
+                            <p className="text-xs font-medium text-gray-600">Leave</p>
+                            <p className="text-lg font-bold text-red-600">{leaveCount}</p>
+                          </div>
+                          <div className="bg-yellow-50 p-3 rounded-lg">
+                            <p className="text-xs font-medium text-gray-600">PWC</p>
+                            <p className="text-lg font-bold text-yellow-600">{pwcCount}</p>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2 flex-wrap">
+                      {dateRangeRecords.length > 0 && (
+                        <div className="mb-4 bg-white p-4 rounded-lg border border-gray-300">
+                          <p className="text-sm font-bold text-gray-700 mb-3">Attendance Records:</p>
+                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {dateRangeRecords.map((record) => {
+                              let statusColor = 'bg-gray-100 text-gray-700';
+                              if (record.status === 'Present') statusColor = 'bg-green-100 text-green-700';
+                              else if (record.status === 'Leave') statusColor = 'bg-red-100 text-red-700';
+                              else if (record.status === 'PWC') statusColor = 'bg-yellow-100 text-yellow-700';
+
+                              return (
+                                <div key={record.id} className="flex justify-between items-center text-sm">
+                                  <span className="text-gray-600">{record.date}</span>
+                                  <span className={`px-2 py-1 rounded text-xs font-bold ${statusColor}`}>
+                                    {record.status}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
                         <button
                           onClick={() => {
                             const record = {
                               id: Date.now(),
                               driverName: driver.name,
                               vehicle: getDriverVehicle(driver.name),
-                              date: selectedDate,
+                              date: new Date().toISOString().split('T')[0],
                               status: 'Present',
                               timestamp: new Date().toLocaleTimeString(),
                             };
-                            setAttendance((prev) => {
-                              const filtered = prev.filter(
-                                (a) => !(a.driverName === driver.name && a.date === selectedDate)
-                              );
-                              return [...filtered, record];
-                            });
+                            setAttendance((prev) => [...prev, record]);
+                            alert(`Attendance marked as Present for ${driver.name}`);
                           }}
-                          className={`px-4 py-2 rounded-lg font-medium transition ${
-                            driverTodayRecord?.status === 'Present'
-                              ? 'bg-green-600 text-white'
-                              : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                          }`}
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-bold uppercase text-sm"
                         >
                           P
                         </button>
-
                         <button
                           onClick={() => {
                             const record = {
                               id: Date.now(),
                               driverName: driver.name,
                               vehicle: getDriverVehicle(driver.name),
-                              date: selectedDate,
+                              date: new Date().toISOString().split('T')[0],
                               status: 'Leave',
                               timestamp: new Date().toLocaleTimeString(),
                             };
-                            setAttendance((prev) => {
-                              const filtered = prev.filter(
-                                (a) => !(a.driverName === driver.name && a.date === selectedDate)
-                              );
-                              return [...filtered, record];
-                            });
+                            setAttendance((prev) => [...prev, record]);
+                            alert(`Attendance marked as Leave for ${driver.name}`);
                           }}
-                          className={`px-4 py-2 rounded-lg font-medium transition ${
-                            driverTodayRecord?.status === 'Leave'
-                              ? 'bg-red-600 text-white'
-                              : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                          }`}
+                          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition font-bold uppercase text-sm"
                         >
                           LEAVE
                         </button>
-
                         <button
                           onClick={() => {
                             const record = {
                               id: Date.now(),
                               driverName: driver.name,
                               vehicle: getDriverVehicle(driver.name),
-                              date: selectedDate,
+                              date: new Date().toISOString().split('T')[0],
                               status: 'PWC',
                               timestamp: new Date().toLocaleTimeString(),
                             };
-                            setAttendance((prev) => {
-                              const filtered = prev.filter(
-                                (a) => !(a.driverName === driver.name && a.date === selectedDate)
-                              );
-                              return [...filtered, record];
-                            });
+                            setAttendance((prev) => [...prev, record]);
+                            alert(`Attendance marked as PWC for ${driver.name}`);
                           }}
-                          className={`px-4 py-2 rounded-lg font-medium transition ${
-                            driverTodayRecord?.status === 'PWC'
-                              ? 'bg-yellow-600 text-white'
-                              : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                          }`}
+                          className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition font-bold uppercase text-sm"
                         >
                           PWC
                         </button>
-
                         <button
                           onClick={() => exportToExcel(driver.name)}
                           className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition flex items-center gap-2"
